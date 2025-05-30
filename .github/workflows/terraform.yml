@@ -29,6 +29,9 @@ jobs:
       uses: hashicorp/setup-terraform@v2
       with:
         terraform_version: 1.5.7  # or your preferred version
+     
+    - name: Terraform Init
+      run: terraform init
 
     - name: Terraform Destroy
       run: terraform destroy
