@@ -1,6 +1,6 @@
 terraform {
   backend "s3" {
-    bucket         = "s3-github"
+    bucket         = "my-oidc-bucket-15328069840"
     key            = "alb-path-routing/terraform.tfstate"
     profile        = "bmware"
     region         = "eu-west-1"
