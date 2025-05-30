@@ -1,3 +1,9 @@
+provider "aws" {
+  region = "us-east-1"
+}
+
+# 1. VPC, Subnets, Internet Gateway, Route Table
+
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
@@ -51,9 +57,7 @@ resource "aws_route_table_association" "c" {
   route_table_id = aws_route_table.rt.id
 }
 
-#------------------------
 # 2. Security Group
-#------------------------
 
 resource "aws_security_group" "web_sg" {
   name   = "web-sg"
@@ -74,80 +78,90 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-#------------------------
-# 3. Launch EC2s with Nginx
-#------------------------
+# 3. EC2 Instances with Nginx
 
 resource "aws_instance" "instance_a" {
-  ami           = "ami-0c02fb55956c7d316" # Amazon Linux 2
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.subnet_a.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  ami                         = "ami-0c02fb55956c7d316"
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.subnet_a.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
               #!/bin/bash
               yum install -y nginx
-              echo "<h1>Home page!</h1>" > /usr/share/nginx/html/index.html
+              echo "<h1>Home Page</h1>" > /usr/share/nginx/html/index.html
               systemctl start nginx
               systemctl enable nginx
-            EOF
+              EOF
 
   tags = { Name = "InstanceA" }
 }
 
 resource "aws_instance" "instance_b" {
-  ami           = "ami-0c02fb55956c7d316"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.subnet_b.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  ami                         = "ami-0c02fb55956c7d316"
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.subnet_b.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
               #!/bin/bash
               yum install -y nginx
               mkdir -p /usr/share/nginx/html/images
-              echo "<h1>Images!</h1>" > /usr/share/nginx/html/images/index.html
+              echo "<h1>Images Page</h1>" > /usr/share/nginx/html/images/index.html
               systemctl start nginx
               systemctl enable nginx
-            EOF
+              EOF
 
   tags = { Name = "InstanceB" }
 }
 
 resource "aws_instance" "instance_c" {
-  ami           = "ami-0c02fb55956c7d316"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.subnet_c.id
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  ami                         = "ami-0c02fb55956c7d316"
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.subnet_c.id
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true
 
   user_data = <<-EOF
               #!/bin/bash
               yum install -y nginx
               mkdir -p /usr/share/nginx/html/register
-              echo "<h1>Register!</h1>" > /usr/share/nginx/html/register/index.html
+              echo "<h1>Register Page</h1>" > /usr/share/nginx/html/register/index.html
               systemctl start nginx
               systemctl enable nginx
-            EOF
+              EOF
 
   tags = { Name = "InstanceC" }
 }
 
-#------------------------
-# 4. Application Load Balancer
-#------------------------
+# 4. Load Balancer and Target Groups
 
 resource "aws_lb" "alb" {
   name               = "app-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web_sg.id]
-  subnets            = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id, aws_subnet.subnet_c.id]
+  subnets            = [
+    aws_subnet.subnet_a.id,
+    aws_subnet.subnet_b.id,
+    aws_subnet.subnet_c.id
+  ]
 }
+
+# Target Groups with Health Checks
 
 resource "aws_lb_target_group" "tg_home" {
   name     = "tg-home"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path     = "/"
+    protocol = "HTTP"
+  }
 }
 
 resource "aws_lb_target_group" "tg_images" {
@@ -155,6 +169,11 @@ resource "aws_lb_target_group" "tg_images" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path     = "/images"
+    protocol = "HTTP"
+  }
 }
 
 resource "aws_lb_target_group" "tg_register" {
@@ -162,7 +181,14 @@ resource "aws_lb_target_group" "tg_register" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path     = "/register"
+    protocol = "HTTP"
+  }
 }
+
+# Attach EC2 to Target Groups
 
 resource "aws_lb_target_group_attachment" "attach_home" {
   target_group_arn = aws_lb_target_group.tg_home.arn
@@ -181,6 +207,8 @@ resource "aws_lb_target_group_attachment" "attach_register" {
   target_id        = aws_instance.instance_c.id
   port             = 80
 }
+
+# Listener and Listener Rules
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
