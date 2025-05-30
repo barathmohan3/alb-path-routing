@@ -1,6 +1,4 @@
-provider "aws" {
-  region = "us-east-1"
-}
+
 
 # 1. VPC, Subnets, Internet Gateway, Route Table
 
