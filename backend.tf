@@ -4,7 +4,6 @@ terraform {
     key            = "alb-path-routing/terraform.tfstate"
     profile        = "bmware"
     region         = "us-east-1"
-    dynamodb_table = "terraform-locks"
     encrypt        = true
   }
 }
