@@ -3,7 +3,7 @@ terraform {
     bucket         = "s3-github"
     key            = "alb-path-routing/terraform.tfstate"
     profile        = "bmware"
-    region         = "us-east-1"
+    region         = "us-west-1"
     dynamodb_table = "terraform-locks"
     encrypt        = true
   }
