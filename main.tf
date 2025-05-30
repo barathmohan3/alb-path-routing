@@ -169,7 +169,7 @@ resource "aws_lb_target_group" "tg_images" {
   vpc_id   = aws_vpc.main.id
 
   health_check {
-    path     = "/images"
+    path     = "/images/"
     protocol = "HTTP"
   }
 }
@@ -181,7 +181,7 @@ resource "aws_lb_target_group" "tg_register" {
   vpc_id   = aws_vpc.main.id
 
   health_check {
-    path     = "/register"
+    path     = "/register/"
     protocol = "HTTP"
   }
 }
